@@ -15,7 +15,7 @@ Gem::Specification.new do |spec|
   spec.homepage      = "https://github.com/ragunathjawahar/liberate"
   spec.license       = "Apache-2.0"
 
-  spec.files         = ["lib/liberate.rb"]
+  spec.files         = ["lib/liberate.rb", "lib/liberate/version.rb"]
   spec.bindir        = "bin"
   spec.executables   << "liberate"
   spec.require_paths = ["lib"]

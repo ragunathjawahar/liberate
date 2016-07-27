@@ -1,12 +1,12 @@
-require 'colorize'
 require 'liberate/version'
+require 'colorize'
+require 'open3'
 
 module Liberate
   class App
 
     def initialize(args)
       # args.push "-h" if args.length == 0
-
       # Command-line options
       create_options_parser(args)
     end
@@ -17,6 +17,12 @@ module Liberate
         opts.banner = "Usage: liberate <options>"
         opts.separator ''
         opts.separator "where possible options are:"
+
+        # List devices
+        opts.on('-l', '--list', 'list connected devices') do
+          list_devices
+          exit
+        end
 
         # Version
         opts.on('-v', '--version', 'show version number') do
@@ -53,6 +59,35 @@ module Liberate
         }
       end
       return nil
+    end
+
+    ### Lists connected devices
+    def list_devices
+      stdin, stdout, stderr, wait_thr = Open3.popen3('adb', 'devices')
+      exit_code = wait_thr.value
+
+      if (exit_code == 0)
+        output = stdout.gets(nil).split("\n")
+        output.delete_at(0) # DELETE this line => List of devices attached
+
+        output.each do |line|
+          device_id = line.match("([a-zA-Z0-9]+)")
+          print_device_information(device_id)
+        end
+      else
+        puts "Trouble starting 'adb', try restarting it manually.".red
+        puts "Details...".yellow
+        puts stdout.gets(nil)
+        puts stderr.gets(nil)
+        exit 1
+      end
+      stderr.close
+      stdout.close
+    end
+
+    ### Prints device information
+    def print_device_information(device_id)
+      puts device_id
     end
 
   end
