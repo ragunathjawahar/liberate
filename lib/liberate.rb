@@ -3,8 +3,9 @@ require 'colorize'
 require 'open3'
 
 module Liberate
-  class App
 
+  ### This is where all the action happens!
+  class App
     def initialize(args)
       # args.push "-h" if args.length == 0
       # Command-line options
@@ -63,7 +64,7 @@ module Liberate
 
     ### Lists connected devices
     def list_devices
-      stdin, stdout, stderr, wait_thr = Open3.popen3('adb', 'devices')
+      stdin, stdout, stderr, wait_thr = Open3.popen3('adb devices -l')
       exit_code = wait_thr.value
 
       if (exit_code == 0)
@@ -71,8 +72,7 @@ module Liberate
         output.delete_at(0) # DELETE this line => List of devices attached
 
         output.each do |line|
-          device_id = line.match("([a-zA-Z0-9]+)")
-          print_device_information(device_id)
+          puts get_device(line)
         end
       else
         puts "Trouble starting 'adb', try restarting it manually.".red
@@ -85,9 +85,37 @@ module Liberate
       stdout.close
     end
 
-    ### Prints device information
-    def print_device_information(device_id)
-      puts device_id
+    PATTERN_SUFFIX = "\:([a-zA-Z0-9_])+"
+
+    ### Get a device from the console output
+    def get_device(line)
+      # Sample line => [51b64dcb    device usb:1-12 product:A6020a40 model:Lenovo_A6020a40 device:A6020a40]
+      id = line.match("([a-zA-Z0-9]+)")[0]
+      device = line.match("device".concat(PATTERN_SUFFIX))[0].split(':')[1]
+          .gsub('_', ' ')
+      product = line.match("product".concat(PATTERN_SUFFIX))[0].split(':')[1]
+          .gsub('_', ' ')
+      model = line.match("model".concat(PATTERN_SUFFIX))[0].split(':')[1]
+          .gsub('_', ' ')
+
+      return Device.new(id, device, product, model)
+    end
+
+    ### Class that holds a device information
+    class Device
+      def initialize(id, device, product, model)
+        @id = id
+        @device = device
+        @product = product
+        @model = model
+      end
+
+      def to_s
+        "ID: ".concat(@id)
+            .concat(" | Device: ").concat(@device)
+            .concat(" | Product: ").concat(@product)
+            .concat(" | Model: ").concat(@model)
+      end
     end
 
   end
