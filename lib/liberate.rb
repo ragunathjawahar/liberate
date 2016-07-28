@@ -1,4 +1,5 @@
 require 'liberate/version'
+require 'optparse'
 require 'colorize'
 require 'open3'
 
@@ -71,6 +72,11 @@ module Liberate
         output = stdout.gets(nil).split("\n")
         output.delete_at(0) # DELETE this line => List of devices attached
 
+        if (output.length == 0)
+          puts "No connected devices found.".yellow
+          exit
+        end
+
         output.each do |line|
           puts get_device(line)
         end
@@ -85,20 +91,22 @@ module Liberate
       stdout.close
     end
 
-    PATTERN_SUFFIX = "\:([a-zA-Z0-9_])+"
-
     ### Get a device from the console output
     def get_device(line)
       # Sample line => [51b64dcb    device usb:1-12 product:A6020a40 model:Lenovo_A6020a40 device:A6020a40]
       id = line.match("([a-zA-Z0-9]+)")[0]
-      device = line.match("device".concat(PATTERN_SUFFIX))[0].split(':')[1]
-          .gsub('_', ' ')
-      product = line.match("product".concat(PATTERN_SUFFIX))[0].split(':')[1]
-          .gsub('_', ' ')
-      model = line.match("model".concat(PATTERN_SUFFIX))[0].split(':')[1]
-          .gsub('_', ' ')
+      device = extract_value("device", line)
+      product = extract_value("product", line)
+      model = extract_value("model", line)
 
       return Device.new(id, device, product, model)
+    end
+
+    PATTERN_SUFFIX = "\:([a-zA-Z0-9_])+"
+    ### Extracts value for the 'key' from a given console output line
+    def extract_value(key, line)
+      return line.match(key.concat(PATTERN_SUFFIX))[0].split(':')[1]
+          .gsub('_', ' ')
     end
 
     ### Class that holds a device information
