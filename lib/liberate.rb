@@ -13,46 +13,6 @@ module Liberate
       create_options_parser(args)
     end
 
-    ### Creates an options parser
-    def create_options_parser(args)
-      args.options do |opts|
-        opts.banner = "Usage: liberate <options>"
-        opts.separator ''
-        opts.separator "where possible options are:"
-
-        # Liberate a specific device
-        opts.on('-d', '--device', 'liberate a specific device') do
-          if args.size == 0
-            puts "You must specify a device when using the -d option.".yellow
-            exit 0
-          end
-
-          liberate_device(args[0])
-          exit
-        end
-
-        # List devices
-        opts.on('-l', '--list', 'list connected devices') do
-          list_devices
-          exit
-        end
-
-        # Version
-        opts.on('-v', '--version', 'show version number') do
-          puts Liberate::NAME.concat(' ').concat(Liberate::VERSION)
-          exit
-        end
-
-        # Help
-        opts.on('-h', '--help', 'show help') do
-          puts opts.help
-          exit
-        end
-
-        opts.parse!
-      end
-    end
-
     ### Checks if 'adb' is present in the system path
     def has_adb_in_path
       unless which('adb')
@@ -74,7 +34,61 @@ module Liberate
       return nil
     end
 
-    ### Liberates a specific device using a 'key'
+    ### Creates an options parser
+    def create_options_parser(args)
+      args.options do |opts|
+        opts.banner = "Usage: liberate <options>"
+        opts.separator ''
+        opts.separator "where possible options are:"
+
+        # List connected devices
+        opts.on('-l', '--list', 'list connected devices') do
+          list_devices
+          exit
+        end
+
+        # Liberate a specific device
+        opts.on('-d', '--device', 'liberate a specific device') do
+          if args.size == 0
+            puts "You must specify a device when using the -d option.".yellow
+            exit 0
+          end
+
+          liberate_device(args[0])
+          exit
+        end
+
+        # Version
+        opts.on('-v', '--version', 'show version number') do
+          puts Liberate::NAME.concat(' ').concat(Liberate::VERSION)
+          exit
+        end
+
+        # Help
+        opts.on('-h', '--help', 'show help') do
+          puts opts.help
+          exit
+        end
+
+        opts.parse!
+      end
+    end
+
+    ### Handles the -l option
+    def list_devices
+      devices = get_devices
+      if devices == nil
+        puts "Trouble starting 'adb', try restarting it manually.".red
+        puts "Details...".yellow
+        puts stdout.gets(nil)
+        puts stderr.gets(nil)
+        exit 1
+      else
+        print_devices_table(devices)
+      end
+    end
+
+    ### Handles the -d option
     def liberate_device(key)
       devices = get_devices
 
@@ -91,21 +105,8 @@ module Liberate
         puts "Multiple devices found.".yellow
         puts matching_devices
       else
-        puts matching_devices[0].model.concat(' liberated!').green
-      end
-    end
-
-    ### Lists connected devices
-    def list_devices
-      devices = get_devices
-      if devices == nil
-        puts "Trouble starting 'adb', try restarting it manually.".red
-        puts "Details...".yellow
-        puts stdout.gets(nil)
-        puts stderr.gets(nil)
-        exit 1
-      else
-        print_devices_table(devices)
+        device = matching_devices[0]
+        liberate(device)
       end
     end
 
@@ -178,6 +179,11 @@ module Liberate
       # Message
       message = "#{devices.size} device(s) found."
       puts message.green
+    end
+
+    ### Liberates the specified device
+    def liberate(device)
+      puts device.model.concat(' liberated!').green
     end
 
     ### Class that holds a device information
