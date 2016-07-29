@@ -77,15 +77,7 @@ module Liberate
     ### Handles the -l option
     def list_devices
       devices = get_devices
-      if devices == nil
-        puts "Trouble starting 'adb', try restarting it manually.".red
-        puts "Details...".yellow
-        puts stdout.gets(nil)
-        puts stderr.gets(nil)
-        exit 1
-      else
-        print_devices_table(devices)
-      end
+      print_devices_table(devices)
     end
 
     ### Handles the -d option
@@ -116,7 +108,11 @@ module Liberate
       console_output, console_error, exit_code = execute_shell_command(command)
 
       if exit_code != 0
-        return nil
+        puts "Trouble starting 'adb', try restarting it manually.".red
+        puts "Details...".yellow
+        puts console_output
+        puts console_error
+        exit 1
       else
         console_output = console_output.split("\n")
         console_output.delete_at(0) # DELETE this line => List of devices attached
@@ -195,7 +191,7 @@ module Liberate
       end
     end
 
-    # FIXME Make a tighter regex
+    # TODO Make a tighter regex
     IP_V4_REGEX = "([0-9])+\\.([0-9])+\\.([0-9])+\\.([0-9])+"
     ### Extracts the IPv4 address from the console output
     def extract_ip_address(console_output)
@@ -208,18 +204,40 @@ module Liberate
       return nil
     end
 
+    PORT_NUMBER = 5555
+    ## Connect to the device via its IP address and port number
     def adb_connect_tcpip(device, ip_address)
-      port_number = 5555
-      command = "adb -s %s tcpip %d" % [device.id, port_number]
+      open_tcpip(device)
+
+      command = "adb -s %s connect %s:%d" % [device.id, ip_address, PORT_NUMBER]
       console_output, console_error, exit_code = execute_shell_command(command)
 
       if exit_code == 0
-        connect_command = "adb -s %s %s:%d" % [device.id, ip_address, port_number]
-        # TODO
+        message = "%s liberated!" % [device.model]
+        puts message.green
       else
-        # TODO Print error message
+        message = "Unable to connect to '%s' via %s. Are we on the same network?" % [device.model, ip_address]
+        puts message.red
+        puts "Details...".yellow
+        puts console_output
+        puts console_error
+        exit 1
       end
-      # puts device.model.concat(' liberated!').green
+    end
+
+    ## Opens a TCPIP port on the device for a remote connection
+    def open_tcpip(device)
+      command = "adb -s %s tcpip %d" % [device.id, PORT_NUMBER]
+      console_output, console_error, exit_code = execute_shell_command(command)
+
+      if exit_code != 0
+        message = "Unable to open port on '%s'." % [device.model]
+        puts message.red
+        puts "Details...".yellow
+        puts console_output
+        puts console_error
+        exit 1
+      end
     end
 
     # This is an elegant method that abstracts the "Open3.popen3" call
