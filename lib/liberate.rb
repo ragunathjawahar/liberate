@@ -77,9 +77,13 @@ module Liberate
           exit
         end
 
+        # Collect device information
+        devices = Array.new
         output.each do |line|
-          puts get_device(line)
+          devices << get_device(line)
         end
+
+        print_devices_table(devices)
       else
         puts "Trouble starting 'adb', try restarting it manually.".red
         puts "Details...".yellow
@@ -109,8 +113,27 @@ module Liberate
           .gsub('_', ' ')
     end
 
+    def print_devices_table(devices)
+      format = '%-20s %-12s %-12s %s'
+
+      # Table Header
+      header = format % ['Model', 'Device', 'Product', 'ID']
+      puts header.yellow
+
+      # Table Rows
+      devices.each do |d|
+        puts format % [d.model, d.device, d.product, d.id]
+      end
+
+      # Message
+      message = "#{devices.length} device(s) found."
+      puts message.green
+    end
+
     ### Class that holds a device information
     class Device
+      attr_accessor :id, :device, :product, :model
+
       def initialize(id, device, product, model)
         @id = id
         @device = device
