@@ -174,7 +174,11 @@ module Liberate
       # Table Rows
       devices.each do |d|
         row = ROW_FORMAT % [d.model, d.device, d.product, d.id]
-        puts row.blue
+        if d.is_connected
+          puts row.light_blue
+        else
+          puts row
+        end
       end
 
       # Message
@@ -277,6 +281,10 @@ module Liberate
         key = key.downcase
         @id.downcase.include?(key) || @device.downcase.include?(key) ||
             @product.downcase.include?(key) || @model.downcase.include?(key)
+      end
+
+      def is_connected()
+        @id.end_with? ":%d" % [PORT_NUMBER]
       end
 
       def to_s
