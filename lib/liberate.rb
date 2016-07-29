@@ -20,6 +20,17 @@ module Liberate
         opts.separator ''
         opts.separator "where possible options are:"
 
+        # Liberate a specific device
+        opts.on('-d', '--device', 'liberate a specific device') do
+          if args.length == 0
+            puts "You must specify a device when using the -d option.".yellow
+            exit 0
+          end
+
+          liberate_device(args[0])
+          exit
+        end
+
         # List devices
         opts.on('-l', '--list', 'list connected devices') do
           list_devices
@@ -63,14 +74,43 @@ module Liberate
       return nil
     end
 
+    ### Liberates a specific device using a 'key'
+    def liberate_device(key)
+      devices = get_devices
+
+      devices.each do |device|
+        puts device.model.concat(' liberated!').green if device.matches(key)
+      end
+    end
+
     ### Lists connected devices
     def list_devices
+      devices = get_devices
+      if (devices == nil)
+        puts "Trouble starting 'adb', try restarting it manually.".red
+        puts "Details...".yellow
+        puts stdout.gets(nil)
+        puts stderr.gets(nil)
+        exit 1
+      else
+        print_devices_table(devices)
+      end
+    end
+
+    ### Gets the list of connected devices
+    def get_devices()
       stdin, stdout, stderr, wait_thr = Open3.popen3('adb devices -l')
       exit_code = wait_thr.value
 
-      if (exit_code == 0)
+      if (exit_code != 0)
+        return nil
+      else
         console_output = stdout.gets(nil).split("\n")
         console_output.delete_at(0) # DELETE this line => List of devices attached
+
+        # Free resources
+        stderr.close
+        stdout.close
 
         if (console_output.length == 0)
           puts "No connected devices found.".yellow
@@ -78,21 +118,12 @@ module Liberate
         end
 
         # Collect and print device information
-        devices = get_devices(console_output)
-        print_devices_table(devices)
-      else
-        puts "Trouble starting 'adb', try restarting it manually.".red
-        puts "Details...".yellow
-        puts stdout.gets(nil)
-        puts stderr.gets(nil)
-        exit 1
+        return parse_devices(console_output)
       end
-      stderr.close
-      stdout.close
     end
 
     ### Gets the list of devices from console output
-    def get_devices(console_output)
+    def parse_devices(console_output)
       devices = Array.new
       console_output.each do |line|
         devices << extract_device(line)
@@ -146,6 +177,12 @@ module Liberate
         @device = device
         @product = product
         @model = model
+      end
+
+      def matches(key)
+        key = key.downcase
+        @id.downcase.include?(key) || @device.downcase.include?(key) ||
+            @product.downcase.include?(key) || @model.downcase.include?(key)
       end
 
       def to_s
