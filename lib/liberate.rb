@@ -181,7 +181,6 @@ module Liberate
       puts message.green
     end
 
-    IP_V4_REGEX = "([0-9])+\\.([0-9])+\\.([0-9])+\\.([0-9])+"
     ### Liberates the specified device
     def liberate(device)
       command = "adb -s %s shell ip -f inet addr show wlan0" % [device.id]
@@ -190,20 +189,35 @@ module Liberate
       exit_code = wait_thr.value
 
       if exit_code == 0
-        console_output = stdout.gets(nil).split("\n")
-        console_output.each do |line|
-          ip_address = line.match(IP_V4_REGEX)
-          puts ip_address if ip_address != nil
+        console_output = stdout.gets(nil)
+        if console_output != nil
+          ip_address = extract_ip_address(console_output)
+          puts ip_address
+          # puts device.model.concat(' liberated!').green
+        else
+          message = "WiFi is turned off on '%s', turn it on from your device's settings." % [device.model]
+          puts message.yellow
         end
-
-        # puts device.model.concat(' liberated!').green
       else
-        # TODO Display error message
+        # TODO Display adb error message
       end
 
       # Free resources
       stderr.close
       stdout.close
+    end
+
+    # FIXME Make a tighter regex
+    IP_V4_REGEX = "([0-9])+\\.([0-9])+\\.([0-9])+\\.([0-9])+"
+    ### Extracts the IPv4 address from the console output
+    def extract_ip_address(console_output)
+      console_output = console_output.split("\n")
+      console_output.each do |line|
+        ip_address = line.match(IP_V4_REGEX)
+        return ip_address if ip_address != nil
+      end
+
+      return nil
     end
 
     ### Class that holds a device information
