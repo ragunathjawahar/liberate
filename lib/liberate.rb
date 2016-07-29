@@ -8,7 +8,7 @@ module Liberate
   ### This is where all the action happens!
   class App
     def initialize(args)
-      # args.push "-h" if args.length == 0
+      # args.push "-h" if args.size == 0
       # Command-line options
       create_options_parser(args)
     end
@@ -22,7 +22,7 @@ module Liberate
 
         # Liberate a specific device
         opts.on('-d', '--device', 'liberate a specific device') do
-          if args.length == 0
+          if args.size == 0
             puts "You must specify a device when using the -d option.".yellow
             exit 0
           end
@@ -78,15 +78,27 @@ module Liberate
     def liberate_device(key)
       devices = get_devices
 
+      matching_devices = Array.new
       devices.each do |device|
-        puts device.model.concat(' liberated!').green if device.matches(key)
+        matching_devices << device if device.matches(key)
+      end
+
+      found = matching_devices.size
+      if found == 0
+        message = "Oops... no device matched '%s'." % [key]
+        puts message.yellow
+      elsif found > 1
+        puts "Multiple devices found.".yellow
+        puts matching_devices
+      else
+        puts matching_devices[0].model.concat(' liberated!').green
       end
     end
 
     ### Lists connected devices
     def list_devices
       devices = get_devices
-      if (devices == nil)
+      if devices == nil
         puts "Trouble starting 'adb', try restarting it manually.".red
         puts "Details...".yellow
         puts stdout.gets(nil)
@@ -97,12 +109,12 @@ module Liberate
       end
     end
 
-    ### Gets the list of connected devices
+    ### Gets the list of connected devices (sorted by '@model')
     def get_devices()
       stdin, stdout, stderr, wait_thr = Open3.popen3('adb devices -l')
       exit_code = wait_thr.value
 
-      if (exit_code != 0)
+      if exit_code != 0
         return nil
       else
         console_output = stdout.gets(nil).split("\n")
@@ -112,7 +124,7 @@ module Liberate
         stderr.close
         stdout.close
 
-        if (console_output.length == 0)
+        if console_output.size == 0
           puts "No connected devices found.".yellow
           exit
         end
@@ -164,7 +176,7 @@ module Liberate
       end
 
       # Message
-      message = "#{devices.length} device(s) found."
+      message = "#{devices.size} device(s) found."
       puts message.green
     end
 
