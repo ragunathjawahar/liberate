@@ -69,20 +69,16 @@ module Liberate
       exit_code = wait_thr.value
 
       if (exit_code == 0)
-        output = stdout.gets(nil).split("\n")
-        output.delete_at(0) # DELETE this line => List of devices attached
+        console_output = stdout.gets(nil).split("\n")
+        console_output.delete_at(0) # DELETE this line => List of devices attached
 
-        if (output.length == 0)
+        if (console_output.length == 0)
           puts "No connected devices found.".yellow
           exit
         end
 
-        # Collect device information
-        devices = Array.new
-        output.each do |line|
-          devices << get_device(line)
-        end
-
+        # Collect and print device information
+        devices = get_devices(console_output)
         print_devices_table(devices)
       else
         puts "Trouble starting 'adb', try restarting it manually.".red
@@ -95,8 +91,18 @@ module Liberate
       stdout.close
     end
 
+    ### Gets the list of devices from console output
+    def get_devices(console_output)
+      devices = Array.new
+      console_output.each do |line|
+        devices << extract_device(line)
+      end
+
+      return devices.sort! { |a,b| a.model.downcase <=> b.model.downcase }
+    end
+
     ### Get a device from the console output
-    def get_device(line)
+    def extract_device(line)
       # Sample line => [51b64dcb    device usb:1-12 product:A6020a40 model:Lenovo_A6020a40 device:A6020a40]
       id = line.match("([a-zA-Z0-9]+)")[0]
       device = extract_value("device", line)
@@ -113,6 +119,7 @@ module Liberate
           .gsub('_', ' ')
     end
 
+    ### Formats and prints a device table
     def print_devices_table(devices)
       format = '%-20s %-12s %-12s %s'
 
