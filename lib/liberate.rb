@@ -159,7 +159,7 @@ module Liberate
     PATTERN_SUFFIX = "\:([a-zA-Z0-9_])+"
     ### Extracts value for the 'key' from a given console output line
     def extract_value(key, line)
-      return line.match(key.concat(PATTERN_SUFFIX))[0].split(':')[1]
+      return line.match(key.concat(PATTERN_SUFFIX))[0].split(':').last
           .gsub('_', ' ')
     end
 
@@ -181,9 +181,29 @@ module Liberate
       puts message.green
     end
 
+    IP_V4_REGEX = "([0-9])+\\.([0-9])+\\.([0-9])+\\.([0-9])+"
     ### Liberates the specified device
     def liberate(device)
-      puts device.model.concat(' liberated!').green
+      command = "adb -s %s shell ip -f inet addr show wlan0" % [device.id]
+
+      stdin, stdout, stderr, wait_thr = Open3.popen3(command)
+      exit_code = wait_thr.value
+
+      if exit_code == 0
+        console_output = stdout.gets(nil).split("\n")
+        console_output.each do |line|
+          ip_address = line.match(IP_V4_REGEX)
+          puts ip_address if ip_address != nil
+        end
+
+        # puts device.model.concat(' liberated!').green
+      else
+        # TODO Display error message
+      end
+
+      # Free resources
+      stderr.close
+      stdout.close
     end
 
     ### Class that holds a device information
