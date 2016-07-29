@@ -112,18 +112,14 @@ module Liberate
 
     ### Gets the list of connected devices (sorted by '@model')
     def get_devices()
-      stdin, stdout, stderr, wait_thr = Open3.popen3('adb devices -l')
-      exit_code = wait_thr.value
+      command = 'adb devices -l'
+      console_output, console_error, exit_code = execute_shell_command(command)
 
       if exit_code != 0
         return nil
       else
-        console_output = stdout.gets(nil).split("\n")
+        console_output = console_output.split("\n")
         console_output.delete_at(0) # DELETE this line => List of devices attached
-
-        # Free resources
-        stderr.close
-        stdout.close
 
         if console_output.size == 0
           puts "No connected devices found.".yellow
@@ -184,16 +180,12 @@ module Liberate
     ### Liberates the specified device
     def liberate(device)
       command = "adb -s %s shell ip -f inet addr show wlan0" % [device.id]
-
-      stdin, stdout, stderr, wait_thr = Open3.popen3(command)
-      exit_code = wait_thr.value
+      console_output, console_error, exit_code = execute_shell_command(command)
 
       if exit_code == 0
-        console_output = stdout.gets(nil)
         if console_output != nil
           ip_address = extract_ip_address(console_output)
-          puts ip_address
-          # puts device.model.concat(' liberated!').green
+          adb_connect_tcpip(device, ip_address)
         else
           message = "WiFi is turned off on '%s', turn it on from your device's settings." % [device.model]
           puts message.yellow
@@ -201,10 +193,6 @@ module Liberate
       else
         # TODO Display adb error message
       end
-
-      # Free resources
-      stderr.close
-      stdout.close
     end
 
     # FIXME Make a tighter regex
@@ -218,6 +206,36 @@ module Liberate
       end
 
       return nil
+    end
+
+    def adb_connect_tcpip(device, ip_address)
+      port_number = 5555
+      command = "adb -s %s tcpip %d" % [device.id, port_number]
+      console_output, console_error, exit_code = execute_shell_command(command)
+
+      if exit_code == 0
+        connect_command = "adb -s %s %s:%d" % [device.id, ip_address, port_number]
+        # TODO
+      else
+        # TODO Print error message
+      end
+      # puts device.model.concat(' liberated!').green
+    end
+
+    # This is an elegant method that abstracts the "Open3.popen3" call
+    def execute_shell_command(command)
+      stdin, stdout, stderr, wait_thr = Open3.popen3(command)
+
+      console_output = stdout.gets(nil)
+      console_error = stderr.gets(nil)
+      exit_code = wait_thr.value
+
+      # Free resources
+      stdin.close
+      stdout.close
+      stderr.close
+
+      return console_output, console_error, exit_code
     end
 
     ### Class that holds a device information
