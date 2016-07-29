@@ -121,15 +121,15 @@ module Liberate
 
     ### Formats and prints a device table
     def print_devices_table(devices)
-      format = '%-20s %-12s %-12s %s'
+      row_format = '%-20s %-12s %-12s %s'
 
       # Table Header
-      header = format % ['Model', 'Device', 'Product', 'ID']
+      header = row_format % ['Model', 'Device', 'Product', 'ID']
       puts header.yellow
 
       # Table Rows
       devices.each do |d|
-        puts format % [d.model, d.device, d.product, d.id]
+        puts row_format % [d.model, d.device, d.product, d.id]
       end
 
       # Message
