@@ -7,6 +7,12 @@ module Liberate
 
   ### This is where all the action happens!
   class App
+
+    # Constants
+    PATTERN_SUFFIX = "\:([a-zA-Z0-9_])+"
+    IP_V4_REGEX = "([0-9])+\\.([0-9])+\\.([0-9])+\\.([0-9])+" # TODO Make a tighter regex
+    PORT_NUMBER = 5555
+
     def initialize(args)
       # args.push "-h" if args.size == 0
       # Command-line options
@@ -148,7 +154,6 @@ module Liberate
       return Device.new(id, device, product, model)
     end
 
-    PATTERN_SUFFIX = "\:([a-zA-Z0-9_])+"
     ### Extracts value for the 'key' from a given console output line
     def extract_value(key, line)
       return line.match(key.concat(PATTERN_SUFFIX))[0].split(':').last
@@ -191,8 +196,6 @@ module Liberate
       end
     end
 
-    # TODO Make a tighter regex
-    IP_V4_REGEX = "([0-9])+\\.([0-9])+\\.([0-9])+\\.([0-9])+"
     ### Extracts the IPv4 address from the console output
     def extract_ip_address(console_output)
       console_output = console_output.split("\n")
@@ -204,8 +207,7 @@ module Liberate
       return nil
     end
 
-    PORT_NUMBER = 5555
-    ## Connect to the device via its IP address and port number
+    ### Connect to the device via its IP address and port number
     def adb_connect_tcpip(device, ip_address)
       open_tcpip(device)
 
@@ -225,7 +227,7 @@ module Liberate
       end
     end
 
-    ## Opens a TCPIP port on the device for a remote connection
+    ### Opens a TCPIP port on the device for a remote connection
     def open_tcpip(device)
       command = "adb -s %s tcpip %d" % [device.id, PORT_NUMBER]
       console_output, console_error, exit_code = execute_shell_command(command)
@@ -240,7 +242,7 @@ module Liberate
       end
     end
 
-    # This is an elegant method that abstracts the "Open3.popen3" call
+    ### This is an elegant method that abstracts the "Open3.popen3" call
     def execute_shell_command(command)
       stdin, stdout, stderr, wait_thr = Open3.popen3(command)
 
