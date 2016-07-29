@@ -8,11 +8,16 @@ module Liberate
   ### This is where all the action happens!
   class App
 
-    # Constants
-    DEVICE_VALUE_PATTERN_SUFFIX = "\:([a-zA-Z0-9_])+"
+    # Regex
+    DEVICE_ID_REGEX = "[\\w\\d\\.\\:]+"
+    VALUE_SUFFIX_REGEX = "\:([a-zA-Z0-9_])+"
     IP_V4_REGEX = "([0-9])+\\.([0-9])+\\.([0-9])+\\.([0-9])+" # TODO Make a tighter regex
-    PORT_NUMBER = 5555
 
+    # Other constants
+    PORT_NUMBER = 5555
+    ROW_FORMAT = '%-20s %-12s %-12s %s'
+
+    ### Good ol' constructor
     def initialize(args)
       # args.push "-h" if args.size == 0
       # Command-line options
@@ -146,7 +151,7 @@ module Liberate
     ### Get a device from the console output
     def extract_device(line)
       # Sample line => [51b64dcb    device usb:1-12 product:A6020a40 model:Lenovo_A6020a40 device:A6020a40]
-      id = line.match("[\\w\\d\\.\\:]+")[0]
+      id = line.match(DEVICE_ID_REGEX)[0]
       device = extract_value("device", line)
       product = extract_value("product", line)
       model = extract_value("model", line)
@@ -156,21 +161,20 @@ module Liberate
 
     ### Extracts value for the 'key' from a given console output line
     def extract_value(key, line)
-      return line.match(key.concat(DEVICE_VALUE_PATTERN_SUFFIX))[0].split(':').last
+      return line.match(key.concat(VALUE_SUFFIX_REGEX))[0].split(':').last
           .gsub('_', ' ')
     end
 
     ### Formats and prints a device table
     def print_devices_table(devices)
-      row_format = '%-20s %-12s %-12s %s'
-
       # Table Header
-      header = row_format % ['Model', 'Device', 'Product', 'ID']
+      header = ROW_FORMAT % ['Model', 'Device', 'Product', 'ID']
       puts header.yellow
 
       # Table Rows
       devices.each do |d|
-        puts row_format % [d.model, d.device, d.product, d.id]
+        row = ROW_FORMAT % [d.model, d.device, d.product, d.id]
+        puts row.blue
       end
 
       # Message
