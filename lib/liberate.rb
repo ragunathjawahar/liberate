@@ -9,7 +9,7 @@ module Liberate
   class App
 
     # Constants
-    PATTERN_SUFFIX = "\:([a-zA-Z0-9_])+"
+    DEVICE_VALUE_PATTERN_SUFFIX = "\:([a-zA-Z0-9_])+"
     IP_V4_REGEX = "([0-9])+\\.([0-9])+\\.([0-9])+\\.([0-9])+" # TODO Make a tighter regex
     PORT_NUMBER = 5555
 
@@ -146,7 +146,7 @@ module Liberate
     ### Get a device from the console output
     def extract_device(line)
       # Sample line => [51b64dcb    device usb:1-12 product:A6020a40 model:Lenovo_A6020a40 device:A6020a40]
-      id = line.match("([a-zA-Z0-9]+)")[0]
+      id = line.match("[\\w\\d\\.\\:]+")[0]
       device = extract_value("device", line)
       product = extract_value("product", line)
       model = extract_value("model", line)
@@ -156,7 +156,7 @@ module Liberate
 
     ### Extracts value for the 'key' from a given console output line
     def extract_value(key, line)
-      return line.match(key.concat(PATTERN_SUFFIX))[0].split(':').last
+      return line.match(key.concat(DEVICE_VALUE_PATTERN_SUFFIX))[0].split(':').last
           .gsub('_', ' ')
     end
 
