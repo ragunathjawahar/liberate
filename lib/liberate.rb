@@ -14,6 +14,7 @@ module Liberate
     IP_V4_REGEX = "([0-9])+\\.([0-9])+\\.([0-9])+\\.([0-9])+" # TODO Make a tighter regex
 
     # Other constants
+    DEBUG = true
     PORT_NUMBER = 5555
     ROW_FORMAT = '%-20s %-12s %-12s %s'
 
@@ -153,8 +154,8 @@ module Liberate
 
     ### Extracts value for the 'key' from a given console output line
     def extract_value(key, line)
-      return line.match(key.concat(VALUE_SUFFIX_REGEX))[0].split(':').last
-          .gsub('_', ' ')
+      found = line.match(key.concat(VALUE_SUFFIX_REGEX))
+      return found[0].split(':').last.gsub('_', ' ') if found != nil
     end
 
     ### Formats and prints a device table
@@ -167,15 +168,16 @@ module Liberate
       devices.each do |d|
         row = ROW_FORMAT % [d.model, d.device, d.product, d.id]
         if d.is_connected
-          puts row.light_blue
+          puts row.cyan.bold
         else
-          puts row
+          puts row.bold
         end
       end
 
       # Message
       message = "#{devices.size} device(s) found."
       puts message.green
+      puts
     end
 
     ### Liberates the specified device
@@ -184,8 +186,10 @@ module Liberate
       error_message = "Unable to connect to %s." % [device.model]
       console_output = execute_shell_command(command, error_message)
 
-      if console_output != nil
-        ip_address = extract_ip_address(console_output)
+      # Find IP address
+      ip_address = extract_ip_address(console_output)
+      if ip_address != nil
+        d("IP address for %s is %s" % [device.model, ip_address])
         adb_connect_tcpip(device, ip_address)
       else
         message = "WiFi is turned off on '%s', turn it on from your device's settings." % [device.model]
@@ -248,6 +252,11 @@ module Liberate
       else
         return console_output
       end
+    end
+
+    ### Prints a message if the DEBUG flag is on.
+    def d(message)
+      puts "[DEBUG] ".concat(message).black.bold if DEBUG
     end
 
     ### Class that holds a device information
