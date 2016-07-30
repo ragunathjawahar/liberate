@@ -121,7 +121,11 @@ module Liberate
       console_output = execute_shell_command(command, error_message)
 
       console_output = console_output.split("\n")
-      console_output.delete_at(0) # DELETE this line => List of devices attached
+      console_output.delete_at(0)               # Delete this line        =>  List of devices attached
+      while console_output[0].start_with?("*")  # Delete lines like these => * daemon not running. starting it now on port 5037 *
+        console_output.delete_at(0)             #                            * daemon started successfully *
+      end
+
       if console_output.size == 0
         puts "No connected devices found.".yellow
         exit
