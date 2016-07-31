@@ -28,7 +28,7 @@ module Liberate
     ### Checks if 'adb' is present in the system path
     def has_adb_in_path
       unless which('adb')
-        puts "'adb' (Android Debug Bridge) not found in path.".red
+        puts "'adb' (Android Debug Bridge) not found in path.".colorize(:red)
         exit 1
       end
     end
@@ -43,15 +43,15 @@ module Liberate
           return exe if File.executable?(exe) && !File.directory?(exe)
         }
       end
-      return nil
+      nil
     end
 
     ### Creates an options parser
     def create_options_parser(args)
       args.options do |opts|
-        opts.banner = "Usage: liberate <options>"
+        opts.banner = 'Usage: liberate <options>'
         opts.separator ''
-        opts.separator "where possible options are:"
+        opts.separator 'where possible options are:'
 
         # List connected devices
         opts.on('-l', '--list', 'list connected devices') do
@@ -62,7 +62,7 @@ module Liberate
         # Liberate a specific device
         opts.on('-d', '--device', 'liberate a specific device') do
           if args.size == 0
-            puts "You must specify a device when using the -d option.".yellow
+            puts 'You must specify a device when using the -d option.'.colorize(:yellow)
             exit 0
           end
 
@@ -103,10 +103,10 @@ module Liberate
 
       found = matching_devices.size
       if found == 0
-        message = "Oops... no device matched '%s'." % [key]
-        puts message.yellow
+        message = "Uh-oh! no device matched '%s'." % [key]
+        puts message.colorize(:yellow)
       elsif found > 1
-        puts "Multiple devices found.".yellow
+        puts 'Multiple devices found.'.colorize(:yellow)
         puts matching_devices
       else
         device = matching_devices[0]
@@ -115,64 +115,70 @@ module Liberate
     end
 
     ### Gets the list of connected devices (sorted by '@model')
-    def get_devices()
+    def get_devices
       command = 'adb devices -l'
       error_message = "Trouble starting 'adb', try restarting it manually."
-      console_output = execute_shell_command(command, error_message)
+      console_output = execute_shell_command(command, error_message).split("\n")
 
-      console_output = console_output.split("\n")
-      console_output.delete_at(0)               # Delete this line        =>  List of devices attached
-      while console_output[0].start_with?("*")  # Delete lines like these => * daemon not running. starting it now on port 5037 *
-        console_output.delete_at(0)             #                            * daemon started successfully *
+      # Delete the following line
+      # List of devices attached
+      console_output.delete_at(0)
+
+      # Delete lines like these
+      # * daemon not running. starting it now on port 5037 *
+      # * daemon started successfully *
+      while !console_output.empty? && console_output[0].start_with?('*')
+        console_output.delete_at(0)
       end
 
       if console_output.size == 0
-        puts "No connected devices found.".yellow
+        puts 'No connected devices found.'.colorize(:yellow)
         exit
       end
 
       # Collect and print device information
-      return parse_devices(console_output)
+      parse_devices(console_output)
     end
 
     ### Gets the list of devices from console output
     def parse_devices(console_output)
       devices = Array.new
+      d(console_output)
       console_output.each do |line|
-        devices << extract_device(line)
+        devices << extract_device(line) unless line.nil? || line.strip.empty?
       end
 
-      return devices.sort! { |a,b| a.model.downcase <=> b.model.downcase }
+      devices.sort! { |a,b| a.model.downcase <=> b.model.downcase }
     end
 
     ### Get a device from the console output
     def extract_device(line)
       # Sample line => [51b64dcb    device usb:1-12 product:A6020a40 model:Lenovo_A6020a40 device:A6020a40]
       id = line.match(DEVICE_ID_REGEX)[0]
-      device = extract_value("device", line)
-      product = extract_value("product", line)
-      model = extract_value("model", line)
+      device = extract_value('device', line)
+      product = extract_value('product', line)
+      model = extract_value('model', line)
 
-      return Device.new(id, device, product, model)
+      Device.new(id, device, product, model)
     end
 
     ### Extracts value for the 'key' from a given console output line
     def extract_value(key, line)
       found = line.match(key.concat(VALUE_SUFFIX_REGEX))
-      return found[0].split(':').last.gsub('_', ' ') if found != nil
+      found[0].split(':').last.gsub('_', ' ') if found != nil
     end
 
     ### Formats and prints a device table
     def print_devices_table(devices)
       # Table Header
-      header = ROW_FORMAT % ['Model', 'Device', 'Product', 'ID']
-      puts header.yellow
+      header = ROW_FORMAT % %w(Model Device Product ID)
+      puts header.colorize(:yellow)
 
       # Table Rows
       devices.each do |d|
         row = ROW_FORMAT % [d.model, d.device, d.product, d.id]
         if d.is_connected
-          puts row.cyan.bold
+          puts row.colorize(:cyan).bold
         else
           puts row.bold
         end
@@ -180,24 +186,24 @@ module Liberate
 
       # Message
       message = "#{devices.size} device(s) found."
-      puts message.green
+      puts message.colorize(:green)
       puts
     end
 
     ### Liberates the specified device
     def liberate(device)
-      command = "adb -s %s shell ip -f inet addr show wlan0" % [device.id]
-      error_message = "Unable to connect to %s." % [device.model]
+      command = 'adb -s %s shell ip -f inet addr show wlan0' % [device.id]
+      error_message = 'Unable to connect to %s.' % [device.model]
       console_output = execute_shell_command(command, error_message)
 
       # Find IP address
       ip_address = extract_ip_address(console_output)
       if ip_address != nil
-        d("IP address for %s is %s" % [device.model, ip_address])
+        d('IP address for %s is %s' % [device.model, ip_address])
         adb_connect_tcpip(device, ip_address)
       else
         message = "WiFi is turned off on '%s', turn it on from your device's settings." % [device.model]
-        puts message.yellow
+        puts message.colorize(:yellow)
       end
     end
 
@@ -209,7 +215,7 @@ module Liberate
         return ip_address if ip_address != nil
       end
 
-      return nil
+      nil
     end
 
     ### Connect to the device via its IP address and port number
@@ -217,18 +223,18 @@ module Liberate
       open_tcpip(device)
 
       # Connect
-      command = "adb -s %s connect %s:%d" % [device.id, ip_address, PORT_NUMBER]
+      command = 'adb -s %s connect %s:%d' % [device.id, ip_address, PORT_NUMBER]
       error_message = "Unable to connect to '%s' via %s. Are we on the same network?" % [device.model, ip_address]
       execute_shell_command(command, error_message)
 
       # Display message if successful!
-      message = "%s liberated!" % [device.model]
-      puts message.green
+      message = '%s liberated!' % [device.model]
+      puts message.colorize(:green)
     end
 
     ### Opens a TCPIP port on the device for a remote connection
     def open_tcpip(device)
-      command = "adb -s %s tcpip %d" % [device.id, PORT_NUMBER]
+      command = 'adb -s %s tcpip %d' % [device.id, PORT_NUMBER]
 
       error_message = "Unable to open port on '%s'." % [device.model]
       execute_shell_command(command, error_message)
@@ -248,19 +254,26 @@ module Liberate
       stderr.close
 
       if exit_code != 0
-        puts error_message.red
-        puts "Details...".yellow
+        puts error_message.colorize(:red)
+        puts 'Details...'.colorize(:yellow)
         puts console_output
         puts console_error
         exit 1
       else
-        return console_output
+        console_output
       end
     end
 
+    # noinspection RubyInstanceMethodNamingConvention
     ### Prints a message if the DEBUG flag is on.
-    def d(message)
-      puts "[DEBUG] ".concat(message).black.bold if DEBUG
+    def d(content)
+      if DEBUG && content.kind_of?(Array)
+        content.each do |element|
+          puts '[DEBUG] '.concat(element).colorize(:black).bold
+        end
+      else
+        puts '[DEBUG] '.concat(content).colorize(:black).bold if DEBUG
+      end
     end
 
     ### Class that holds a device information
@@ -280,15 +293,15 @@ module Liberate
             @product.downcase.include?(key) || @model.downcase.include?(key)
       end
 
-      def is_connected()
-        @id.end_with? ":%d" % [PORT_NUMBER]
+      def is_connected
+        @id.end_with? ':%d' % [PORT_NUMBER]
       end
 
       def to_s
-        "ID: ".concat(@id)
-            .concat(" | Device: ").concat(@device)
-            .concat(" | Product: ").concat(@product)
-            .concat(" | Model: ").concat(@model)
+        'ID: '.concat(@id)
+            .concat(' | Device: ').concat(@device)
+            .concat(' | Product: ').concat(@product)
+            .concat(' | Model: ').concat(@model)
       end
     end
 
