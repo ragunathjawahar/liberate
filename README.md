@@ -2,10 +2,12 @@ Liberate!
 ===================
 Liberate your test devices from USB cables in a jiffy.
 
+![Screenshot](_public/liberate.png)
+
 License
 ---------------------
 
-    Copyright 2016 Mobs & Geeks
+    Copyright 2016 Ragunath Jawahar
 
     Licensed under the Apache License, Version 2.0 (the "License");
     you may not use this file except in compliance with the License.
