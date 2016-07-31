@@ -107,10 +107,7 @@ module Liberate
     def liberate_device(key)
       devices = get_devices
 
-      matching_devices = Array.new
-      devices.each do |device|
-        matching_devices << device if device.matches(key)
-      end
+      matching_devices = devices.select { |device| device.matches(key) }
 
       found = matching_devices.size
       if found == 0
@@ -127,8 +124,27 @@ module Liberate
 
     ### Handles the -x option
     def disconnect_device(key)
-      # TODO Logic to disconnect the device
-      puts key
+      devices = get_devices
+      matching_devices = devices.select { |device| device.matches(key) }
+
+      found = matching_devices.size
+      if found == 0
+        message = "Uh-oh! no device matched '%s'." % [key]
+        puts message.colorize(:yellow)
+      elsif found > 1
+        puts 'Multiple devices found.'.colorize(:yellow)
+        puts matching_devices
+      else
+        device = matching_devices.first
+        if device.is_connected
+          disconnect(device)
+          message = "'%s' disconnected." % [device.model]
+          puts message.colorize(:green)
+        else
+          message = "'%s' is not connected via WiFi." % [device.model]
+          puts message.colorize(:yellow)
+        end
+      end
     end
 
     ### Gets the list of connected devices (sorted by '@model')
@@ -247,7 +263,7 @@ module Liberate
       execute_shell_command(command, error_message)
 
       # Display message if successful!
-      message = '%s liberated!' % [device.model]
+      message = "'%s' liberated!" % [device.model]
       puts message.colorize(:green)
     end
 
@@ -256,6 +272,13 @@ module Liberate
       command = 'adb -s %s tcpip %d' % [device.id, PORT_NUMBER]
 
       error_message = "Unable to open port on '%s'." % [device.model]
+      execute_shell_command(command, error_message)
+    end
+
+    # Disconnect a specific device
+    def disconnect(device)
+      command = 'adb -s %s usb' % [device.id]
+      error_message = "Unable to disconnect '%s'." % [device.model]
       execute_shell_command(command, error_message)
     end
 
