@@ -15,8 +15,8 @@ module Liberate
 
     # Other constants
     DEBUG = true
-    PORT_NUMBER = 5555
-    ROW_FORMAT = '%-20s %-12s %-12s %s'
+    PORT_NUMBER = 5454
+    ROW_FORMAT = '%-20s %-16s %-16s %s'
 
     ### Good ol' constructor
     def initialize(args)
@@ -204,7 +204,7 @@ module Liberate
       end
 
       # Message
-      message = "#{devices.size} device(s) found."
+      message = '%d device(s) found.' % [devices.size]
       puts message.colorize(:green)
       puts
     end
@@ -272,7 +272,7 @@ module Liberate
       stdout.close
       stderr.close
 
-      d('Exit Code: %s' % [exit_code])
+      d('%s Exit: %s' % [command, exit_code])
       if exit_code != 0
         puts error_message.colorize(:red)
         puts 'Details...'.colorize(:yellow)
