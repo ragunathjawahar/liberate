@@ -10,7 +10,7 @@ module Liberate
 
     # Regex
     DEVICE_ID_REGEX = "[\\w\\d\\.\\:]+"
-    VALUE_SUFFIX_REGEX = "\:([a-zA-Z0-9_])+"
+    VALUE_SUFFIX_REGEX = "\\:([a-zA-Z0-9_])+"
     IP_V4_REGEX = "([0-9])+\\.([0-9])+\\.([0-9])+\\.([0-9])+" # TODO Make a tighter regex
 
     # Other constants
@@ -38,10 +38,10 @@ module Liberate
     def which(cmd)
       exts = ENV['PATHEXT'] ? ENV['PATHEXT'].split(';') : ['']
       ENV['PATH'].split(File::PATH_SEPARATOR).each do |path|
-        exts.each { |ext|
+        exts.each do |ext|
           exe = File.join(path, "#{cmd}#{ext}")
           return exe if File.executable?(exe) && !File.directory?(exe)
-        }
+        end
       end
       nil
     end
@@ -67,6 +67,17 @@ module Liberate
           end
 
           liberate_device(args[0])
+          exit
+        end
+
+        # Disconnect a specific device from WiFi
+        opts.on('-x', '--disconnect', 'disconnect the specified device from WiFi') do
+          if args.size == 0
+            puts 'You must specify a device when using the -x option.'.colorize(:yellow)
+            exit 0
+          end
+
+          disconnect_device(args[0])
           exit
         end
 
@@ -114,6 +125,12 @@ module Liberate
       end
     end
 
+    ### Handles the -x option
+    def disconnect_device(key)
+      # TODO Logic to disconnect the device
+      puts key
+    end
+
     ### Gets the list of connected devices (sorted by '@model')
     def get_devices
       command = 'adb devices -l'
@@ -143,8 +160,8 @@ module Liberate
     ### Gets the list of devices from console output
     def parse_devices(console_output)
       devices = Array.new
-      d(console_output)
       console_output.each do |line|
+        d_with_hint('Device found!', line)
         devices << extract_device(line) unless line.nil? || line.strip.empty?
       end
 
@@ -158,6 +175,8 @@ module Liberate
       device = extract_value('device', line)
       product = extract_value('product', line)
       model = extract_value('model', line)
+
+      model = '[UNAUTHORIZED]' if model.nil? and line.include? 'unauthorized'
 
       Device.new(id, device, product, model)
     end
@@ -242,21 +261,22 @@ module Liberate
 
     ### This is an elegant method that abstracts the "Open3.popen3" call
     def execute_shell_command(command, error_message)
-      stdin, stdout, stderr, wait_thr = Open3.popen3(command)
+      stdin, stdout, stderr, wait_thread = Open3.popen3(command)
 
       console_output = stdout.gets(nil)
       console_error = stderr.gets(nil)
-      exit_code = wait_thr.value
+      exit_code = wait_thread.value
 
       # Free resources
       stdin.close
       stdout.close
       stderr.close
 
+      d('Exit Code: %s' % [exit_code])
       if exit_code != 0
         puts error_message.colorize(:red)
         puts 'Details...'.colorize(:yellow)
-        puts console_output
+        puts console_output unless console_output.nil?
         puts console_error
         exit 1
       else
@@ -267,12 +287,20 @@ module Liberate
     # noinspection RubyInstanceMethodNamingConvention
     ### Prints a message if the DEBUG flag is on.
     def d(content)
+      d_with_hint('', content)
+    end
+
+    ### Prints a message with a 'hint' if the DEBUG flag is on.
+    def d_with_hint(hint, content)
+      hint = '' if hint.nil?
+
+      message = '[DEBUG] '.concat(hint).concat(' ')
       if DEBUG && content.kind_of?(Array)
         content.each do |element|
-          puts '[DEBUG] '.concat(element).colorize(:black).bold
+          puts message.concat(element).colorize(:black).bold
         end
       else
-        puts '[DEBUG] '.concat(content).colorize(:black).bold if DEBUG
+        puts message.concat(content).colorize(:black).bold if DEBUG
       end
     end
 
@@ -289,8 +317,8 @@ module Liberate
 
       def matches(key)
         key = key.downcase
-        @id.downcase.include?(key) || @device.downcase.include?(key) ||
-            @product.downcase.include?(key) || @model.downcase.include?(key)
+        (!@id.nil? && @id.downcase.include?(key)) || (!@device.nil? && @device.downcase.include?(key)) ||
+            (!@product.nil? && @product.downcase.include?(key)) || (!@model.nil? && @model.downcase.include?(key))
       end
 
       def is_connected
