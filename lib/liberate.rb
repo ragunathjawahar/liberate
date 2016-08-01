@@ -359,7 +359,7 @@ module Liberate
       end
 
       def is_connected
-        @id.end_with? ':%d' % [PORT_NUMBER]
+        @id.end_with? ':%d' % [PORT_NUMBER] # FIXME Use a proper regex, will fail for devices using a different port
       end
 
       def to_s
