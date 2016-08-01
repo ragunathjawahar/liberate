@@ -24,4 +24,5 @@ Gem::Specification.new do |spec|
 
   # Dependencies
   spec.add_dependency 'colorize', '~> 0.8.1'
+  spec.add_dependency 'rspec', '~> 3.5'
 end

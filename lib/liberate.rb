@@ -34,7 +34,7 @@ module Liberate
 
     ### Good ol' constructor
     def initialize(args)
-      # args.push "-h" if args.size == 0
+      puts args.inspect
       # Command-line options
       create_options_parser(args)
     end
@@ -62,6 +62,8 @@ module Liberate
 
     ### Creates an options parser
     def create_options_parser(args)
+      puts args.inspect
+      puts args.class.inspect
       args.options do |opts|
         opts.banner = 'Usage: liberate <options>'
         opts.separator ''
