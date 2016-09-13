@@ -13,7 +13,6 @@
 #
 
 require 'liberate/version'
-require 'optparse'
 require 'colorize'
 require 'open3'
 
@@ -258,6 +257,10 @@ module Liberate
 
     ### Extracts the IPv4 address from the console output
     def extract_ip_address(console_output)
+      if console_output == nil
+        return nil
+      end
+
       console_output = console_output.split("\n")
       console_output.each do |line|
         ip_address = line.match(IP_V4_REGEX)
