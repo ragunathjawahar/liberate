@@ -1,5 +1,7 @@
-Liberate!
-===================
+Liberate! (Deprecated)
+======================
+This project has been **deprecated** in favor of better solutions like [Android WiFi ADB](https://github.com/pedrovgs/AndroidWiFiADB) and [ADB WIFI](https://github.com/layerlre/ADBWIFI).
+
 Liberate your test devices from USB cables in a jiffy.
 
 ![Screenshot](_public/liberate.png)
